@@ -19,7 +19,7 @@
       "producerId": "sensaio",
       "moduleId": "sensaio",
       "version": "1"
-    },
+    }
   },
   "devDependencies": {
     "jest": "^25.4.0"
