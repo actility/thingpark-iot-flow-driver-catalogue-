@@ -10,7 +10,7 @@
   },
   "driver": {
     "description": "A simple driver that is able to decode/encode data from our vibration sensor",
-    "producerId": "actilitypub",
+    "producerId": "twtg",
     "type": "thingpark-x-js",
     "private": false,
     "application": {
