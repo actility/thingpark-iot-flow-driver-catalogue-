@@ -1,5 +1,5 @@
 {
-  "name": "@actilitypub/twtg-ld-vb-xx-xx",
+  "name": "@actilitypub/twtg-ds-vb-xx-xx",
   "version": "1.0.0",
   "description": "Vibration sensor driver for Actility ThingPark-X",
   "specification": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/blob/main/VB/README.md",
@@ -15,7 +15,7 @@
     "private": false,
     "application": {
       "producerId": "twtg",
-      "moduleId": "ld-vb-xx-xx",
+      "moduleId": "ds-vb-xx-xx",
       "version": "1"
     }
   },
