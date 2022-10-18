@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Vibration sensor driver for Actility ThingPark-X",
   "specification": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/blob/main/VB/README.md",
-  "deviceImageUrl": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/blob/main/.resources/vb.jpg",
+  "deviceImageUrl": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/raw/main/.resources/vb.jpg",
   "main": "index.js",
   "scripts": {
     "test": "jest --collectCoverage"
