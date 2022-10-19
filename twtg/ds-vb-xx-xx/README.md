@@ -1,6 +1,7 @@
 ﻿# TWTG DS-VB-xx-xx driver
 
-This is a simple driver that can encode downlink messages and decode uplink messages.
+This is a simple driver that can encode downlink messages and decode uplink messages. Documentation can be found at:
+https://github.com/TWTG-R-D-B-V/neon-product-documentation/tree/main/VB
 
 ## Unit test
 
