@@ -2414,7 +2414,3 @@ function lookup_config_type(config_type) {
       throw new Error("Unknown config_type: " + config_type);
   }
 }
-
-
-exports.decodeUplink = decodeUplink;
-exports.encodeDownlink = encodeDownlink;
