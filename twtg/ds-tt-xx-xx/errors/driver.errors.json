@@ -1,0 +1,56 @@
+[
+    {
+        "description": "Downlink: Incorrect protocol version",
+        "type": "uplink",
+        "bytes": "745678",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "error": "Protocol version is not supported"
+    },
+    {
+        "description": "Uplink: Invalid device_status message length",
+        "type": "uplink",
+        "bytes": "345678",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "error": "Invalid device_status message length 3 instead of 18"
+    },
+    {
+        "description": "Uplink: Invalid message type",
+        "type": "uplink",
+        "bytes": "375678",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "error": "Invalid message type"
+    },
+    {
+        "description": "Downlink: TT app.: False message type error",
+        "type": "downlink",
+        "fPort": 15,
+        "data": {
+            "header": {
+                "message_type": 0,
+                "protocol_version": 3
+            },
+            "switch_mask": {
+                "enable_confirmed_event_message": false
+            },
+            "communication_max_retries": 1,
+            "number_of_unconfirmed_messages": 1,
+            "periodic_message_random_delay_seconds": 0,
+            "status_message_interval_seconds": 60,
+            "status_message_confirmed_interval": 0,
+            "lora_failure_holdoff_count": 0,
+            "lora_system_recover_count": 0,
+            "lorawan_fsb_mask": [
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        },
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "error": "Invalid message type!"
+    }
+]

@@ -1,0 +1,209 @@
+[
+    {
+        "description": "Payload: TT app. configuration payload - pattern",
+        "type": "downlink",
+        "bytes": "360402010002000103000702040008030500090406000ADC76",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "application_configuration",
+                "protocol_version": 3
+            },
+            "device_type": "tt",
+            "sensor_type": "K",
+            "temperature_measurement_interval_seconds": 1,
+            "periodic_event_message_interval": 2,
+            "events": [
+                {
+                    "mode": "above",
+                    "threshold_temperature": 0.3,
+                    "measurement_window": 7
+                },
+                {
+                    "mode": "below",
+                    "threshold_temperature": 0.4,
+                    "measurement_window": 8
+                },
+                {
+                    "mode": "increasing",
+                    "threshold_temperature": 0.5,
+                    "measurement_window": 9
+                },
+                {
+                    "mode": "decreasing",
+                    "threshold_temperature": 0.6,
+                    "measurement_window": 10
+                }
+            ]
+        }
+    },
+    {
+        "description": "TT Complete/Device message - Zeros",
+        "type": "downlink",
+        "bytes": "3500010100010000000000000000000000000000DA90",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "device_configuration",
+                "protocol_version": 3
+            },
+            "switch_mask": {
+                "enable_confirmed_event_message": false
+            },
+            "communication_max_retries": 1,
+            "number_of_unconfirmed_messages": 1,
+            "periodic_message_random_delay_seconds": 0,
+            "status_message_interval_seconds": 60,
+            "status_message_confirmed_interval": 0,
+            "lora_failure_holdoff_count": 0,
+            "lora_system_recover_count": 0,
+            "lorawan_fsb_mask": [
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        }
+    },
+    {
+        "description": "TT Complete/Device message - EU868",
+        "type": "downlink",
+        "bytes": "350103023CA00501020100000000000000000000D455",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "device_configuration",
+                "protocol_version": 3
+            },
+            "switch_mask": {
+                "enable_confirmed_event_message": true
+            },
+            "communication_max_retries": 3,
+            "number_of_unconfirmed_messages": 2,
+            "periodic_message_random_delay_seconds": 60,
+            "status_message_interval_seconds": 86400,
+            "status_message_confirmed_interval": 1,
+            "lora_failure_holdoff_count": 2,
+            "lora_system_recover_count": 1,
+            "lorawan_fsb_mask": [
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        }
+    },
+    {
+        "description": "TT Complete/Device message - US915 hybrid",
+        "type": "downlink",
+        "bytes": "350103023CA005010201FF00000000000000020042E0",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "device_configuration",
+                "protocol_version": 3
+            },
+            "switch_mask": {
+                "enable_confirmed_event_message": true
+            },
+            "communication_max_retries": 3,
+            "number_of_unconfirmed_messages": 2,
+            "periodic_message_random_delay_seconds": 60,
+            "status_message_interval_seconds": 86400,
+            "status_message_confirmed_interval": 1,
+            "lora_failure_holdoff_count": 2,
+            "lora_system_recover_count": 1,
+            "lorawan_fsb_mask": [
+                255,
+                0,
+                0,
+                0,
+                2
+            ]
+        }
+    },
+    {
+        "description": "TT application message - Zeros",
+        "type": "downlink",
+        "bytes": "36040000000000000000000000000000000000000000001FDD",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "application_configuration",
+                "protocol_version": 3
+            },
+            "device_type": "tt",
+            "sensor_type": "PT100",
+            "temperature_measurement_interval_seconds": 0,
+            "periodic_event_message_interval": 0,
+            "events": [
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                }
+            ]
+        }
+    },
+    {
+        "description": "TT application message - Official",
+        "type": "downlink",
+        "bytes": "3604028403100000000000000000000000000000000000A6AD",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "application_configuration",
+                "protocol_version": 3
+            },
+            "device_type": "tt",
+            "sensor_type": "K",
+            "temperature_measurement_interval_seconds": 900,
+            "periodic_event_message_interval": 16,
+            "events": [
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                },
+                {
+                    "mode": "off",
+                    "threshold_temperature": 0,
+                    "measurement_window": 0
+                }
+            ]
+        }
+    }
+]
