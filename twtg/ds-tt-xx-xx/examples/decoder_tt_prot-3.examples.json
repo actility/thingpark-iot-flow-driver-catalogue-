@@ -37,7 +37,7 @@
         }
     },
     {
-        "description": "TT activated message Payload - pattern",
+        "description": "TT deactivated message Payload - pattern",
         "type": "uplink",
         "bytes": "32",
         "fPort": 15,
@@ -103,6 +103,37 @@
                 "tx_counter": 6,
                 "avg_rssi": -7,
                 "avg_snr": 8
+            }
+        }
+    },
+    {
+        "description": "TT device status message payload - battery extreme 1",
+        "type": "uplink",
+        "bytes": "340000000000A00F00000000000000000000",
+        "fPort": 15,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "header": {
+                "message_type": "device_status",
+                "protocol_version": 3
+            },
+            "device_status": {
+                "device_config_crc": "0x0000",
+                "application_config_crc": "0x0000",
+                "event_counter": 0,
+                "battery_voltage": {
+                    "low": 4,
+                    "high": 0,
+                    "settle": 0
+                },
+                "temperature": {
+                    "min": 0,
+                    "max": 0,
+                    "avg": 0
+                },
+                "tx_counter": 0,
+                "avg_rssi": -0,
+                "avg_snr": 0
             }
         }
     }
