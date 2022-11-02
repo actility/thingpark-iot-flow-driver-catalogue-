@@ -1,6 +1,6 @@
 /**
- * Filename          : decoder_tt_doc-D_rev-2.js
- * Latest commit     : 18f744de
+ * Filename          : -
+ * Latest commit     : -
  * Protocol document : D
  *
  * Release History
@@ -22,7 +22,27 @@
  * - Fixed hexadecimal message decoding
  *
  * YYYY-MM-DD revision X
- * -
+ * - Align configuration name in NEON product
+ *   + device -> base
+ *   + application -> sensor
+ * - Align uplink name in NEON product
+ *   + application_event -> sensor_event
+ * - Updated TT similar to the changes from PT
+ * -- updated the decoder to supoort the new error codes for PT
+ * -- added the user trigger for event msg
+ * -- completed the list of message types
+ * -- completed the list of devices
+ * -- added user trigger
+ * -- added bist to the status msg
+ * - Protocol V4
+ * -- Updated Boot, Device status, and Sensor event messages to support normal, extended, debug formats.
+ * -- Removed message_type from header.
+ * -- Added configUpdateAns.
+ * -- Separated the sensor configuration into Sensor configuration and sensor conditions configuration
+ * -- Separated base configuration into base configuration and Region configuration
+ * -- Moved protocol_version into message body
+ * -- Ignore null payload OR MAC uplink
+ * -- Added entry point for ThingPark
  */
 
  if (typeof module !== 'undefined') {
@@ -40,8 +60,29 @@
     decode_uint8: decode_uint8,
     decode_int8: decode_int8,
     decode_reboot_info: decode_reboot_info,
-    decode_application_temperature: decode_application_temperature,
+    decode_sensor_temperature: decode_sensor_temperature,
     from_hex_string: from_hex_string,
+    decode_temperature_16bit: decode_temperature_16bit,
+    decode_sensor_temperature_v2_v3: decode_sensor_temperature_v2_v3,
+    decode_sensor_temperature_v4: decode_sensor_temperature_v4,
+    decode_header: decode_header,
+    decode_header_v4: decode_header_v4,
+    decode_boot_msg_v4: decode_boot_msg_v4,
+    reboot_lookup_major: reboot_lookup_major,
+    reboot_lookup_minor: reboot_lookup_minor,
+    decode_device_status_msg_v4: decode_device_status_msg_v4,
+    decode_battery_voltage: decode_battery_voltage,
+    rssi_lookup: rssi_lookup,
+    decode_config_update_ans_msg: decode_config_update_ans_msg,
+    config_type_lookup: config_type_lookup,
+    decode_deactivated_msg_v4: decode_deactivated_msg_v4,
+    deactivation_reason_lookup: deactivation_reason_lookup,
+    decode_activated_msg_v4: decode_activated_msg_v4,
+    decode_sensor_event_msg_v4: decode_sensor_event_msg_v4,
+    decode_sensor_event_msg_normal: decode_sensor_event_msg_normal,
+    decode_sensor_event_msg_extended: decode_sensor_event_msg_extended,
+    lookup_selection: lookup_selection,
+    decode_sensor_temperature_normal_v4: decode_sensor_temperature_normal_v4,
     encodeDownlink: encodeDownlink,
     Encode: Encode,
     Encoder: Encoder,
@@ -65,61 +106,147 @@
   };
 }
 
-function decodeUplink(input) {
+
+/**
+ * Decoder for ThingPark network server
+ */
+ function decodeUplink(input) {
   return Decode(input.fPort, input.bytes)
 }
 
-// Decode an uplink message from a buffer
-// (array) of bytes to an object of fields.
+/**
+ * Decoder for Chirpstack (loraserver) network server
+ *
+ * Decode an uplink message from a buffer
+ * (array) of bytes to an object of fields.
+ */
 function Decode(fPort, bytes) { // Used for ChirpStack (aka LoRa Network Server)
+
+  // Protocol Versions
+  var PROTOCOL_VERSION_V2 = 2;
+  var PROTOCOL_VERSION_V3 = 3;
+  var PROTOCOL_VERSION_V4 = 4;
+
+  // Message Ports
+  var FPORT_BOOT = 1;
+  var FPORT_DEVICE_STATUS = 2;
+  var FPORT_SENSOR_EVENT = 3;
+  var FPORT_SENSOR_DATA = 4;
+  var FPORT_ACTIVATION = 5;
+  var FPORT_DEACTIVATION = 6;
+  var FPORT_CONFIG_UPDATE = 7;
+  var FPORT_CALIBRATION_UPDATE = 8;
+  var FPORT_DEFAULT_APP = 15;
+
+  // Message headers strings
+  var STR_BOOT = "boot";
+  var STR_ACTIVATED = "activated";
+  var STR_DEACTIVATED = "deactivated";
+  var STR_SENSOR_EVENT = "sensor_event";
+  var STR_DEVICE_STATUS = "device_status";
+
   var decoded = {};
-  decoded.header = {};
-  decoded.header.protocol_version = bytes[0] >> 4;
-  message_type = bytes[0] & 0x0F;
+  var cursor = {};   // keeping track of which byte to process.
+  cursor.value = 0;  // Start from 0
 
-  switch (decoded.header.protocol_version) {
-    case 2:
-    case 3: { // protocol_version = 2 and 3
-      decoded.header.message_type = message_types_lookup_v2(message_type);
+  if (fPort == 0 || bytes.length == 0) {
+    // Ignore null payload OR MAC uplink
+    return decoded;
+  }
 
-      var cursor = {}; // keeping track of which byte to process.
-      cursor.value = 1; // skip header that is already done
+  var protocol_version = get_protocol_version(bytes);
 
-      switch (message_type) {
-        case 0: { // Boot message
-          decoded.boot = decode_boot_msg(bytes, cursor);
-          break;
+  switch (protocol_version) {
+    case PROTOCOL_VERSION_V2:
+    case PROTOCOL_VERSION_V3: {
+      decoded.header = decode_header(bytes, cursor);
+      if (fPort == FPORT_DEFAULT_APP) {
+        switch (decoded.header.message_type) {
+          case STR_BOOT:
+            decoded.boot = decode_boot_msg(bytes, cursor);
+            break;
+
+          case STR_ACTIVATED:
+            // Only header
+            break;
+
+          case STR_DEACTIVATED:
+            // only header
+            break;
+
+          case STR_SENSOR_EVENT:
+            decoded.sensor_event = decode_sensor_event_msg(bytes, cursor, protocol_version);
+            break;
+
+          case STR_DEVICE_STATUS:
+            decoded.device_status = decode_device_status_msg(bytes, cursor, protocol_version);
+            break;
+
+          default:
+            throw "Invalid message type!";
         }
-
-        case 1: { // Activated message
-          break;
-        }
-
-        case 2: { // Deactivated message
-          break;
-        }
-
-        case 3: { // Sensor event message
-          decoded.application_event = decode_application_event_msg(bytes, cursor, decoded.header.protocol_version);
-          break;
-        }
-
-        case 4: { // Device status message
-          decoded.device_status = decode_device_status_msg(bytes, cursor);
-          break;
-        }
-        default:
-          throw "Invalid message type!"
       }
       break;
     }
-    default:
-      throw "Protocol version is not supported!"
-  }
 
+    case PROTOCOL_VERSION_V4: {
+      // Protocol V4 reserves each fPort for different purpose
+      switch (fPort) {
+        case FPORT_BOOT:
+          header = decode_header_v4(bytes, cursor);
+          decoded.boot = decode_boot_msg_v4(bytes, cursor);
+          decoded.boot.protocol_version = header.protocol_version;
+          break;
+
+        case FPORT_DEVICE_STATUS:
+          header = decode_header_v4(bytes, cursor);
+          decoded.device_status = decode_device_status_msg_v4(bytes, cursor);
+          decoded.device_status.protocol_version = header.protocol_version;
+          break;
+
+        case FPORT_SENSOR_EVENT:
+          header = decode_header_v4(bytes, cursor);
+          decoded.sensor_event = decode_sensor_event_msg_v4(bytes, cursor);
+          decoded.sensor_event.protocol_version = header.protocol_version;
+          break;
+
+        case FPORT_ACTIVATION:
+          header = decode_header_v4(bytes, cursor);
+          decoded.activated = decode_activated_msg_v4(bytes, cursor);
+          decoded.activated.protocol_version = header.protocol_version;
+          break;
+
+        case FPORT_DEACTIVATION:
+          header = decode_header_v4(bytes, cursor);
+          decoded.deactivated = decode_deactivated_msg_v4(bytes, cursor);
+          decoded.deactivated.protocol_version = header.protocol_version;
+          break;
+
+        case FPORT_CONFIG_UPDATE:
+          decoded.config_update_ans = decode_config_update_ans_msg(bytes, cursor);
+          break;
+
+        case FPORT_CALIBRATION_UPDATE:
+          // TODO: Implement this
+          break;
+
+        default:
+          // NOTE: It could be unsupported device management message so there should be no assertion!
+          break;
+      }
+      break;
+    }
+  
+    default:
+      throw "Unsupported protocol version!";
+  }
+  
   return decoded;
 }
 
+/**
+ * Decoder for The Things Network network server
+ */
 function Decoder(obj, fPort) { // for The Things Network server
   return Decode(fPort, obj);
 }
@@ -127,13 +254,27 @@ function Decoder(obj, fPort) { // for The Things Network server
 /**
  * Decoder for plain HEX string
  */
-function DecodeHexString(hex_string) {
-  return Decode(15, from_hex_string(hex_string));
+function DecodeHexString(fPort, hex_string) {
+  return Decode(fPort, from_hex_string(hex_string));
 }
 
 /******************
  * Helper functions
  */
+
+/**
+  * Get protocol version without increasing cursor
+  */
+ function get_protocol_version(bytes) {
+  var cursor = {};
+  cursor.value = 0;
+
+  var data = decode_uint8(bytes, cursor);
+
+  var protocol_version = data >> 4;
+
+  return protocol_version;
+}
 
 // helper function to convert a ASCII HEX string to a byte string
 function from_hex_string(hex_string) {
@@ -142,10 +283,9 @@ function from_hex_string(hex_string) {
   if (hex_string.length & 0x01 > 0) throw new Error("hex_string length must be a multiple of two");
 
   var byte_string = [];
-  for (i = 0; i < hex_string.length; i += 2)
-  {
-      var hex = hex_string.slice(i, i + 2);
-      byte_string.push(parseInt(hex, 16));
+  for (i = 0; i < hex_string.length; i += 2) {
+    var hex = hex_string.slice(i, i + 2);
+    byte_string.push(parseInt(hex, 16));
   }
   return byte_string;
 }
@@ -241,8 +381,110 @@ function decode_int8(bytes, cursor) {
   return result;
 }
 
+// helper function to parse a single temperature_16bit value
+function decode_temperature_16bit(bytes, cursor) {
+  var PT100_LOWER_BOUND_ERROR_CODE = 0x7FFD;
+  var PT100_UPPER_BOUND_ERROR_CODE = 0x7FFE;
+  var HARDWARE_ERROR_CODE = 0x7FFF;
+
+  // Get raw value which could be an error code
+  var temperature = decode_int16(bytes, cursor);
+
+  if (
+    temperature == PT100_LOWER_BOUND_ERROR_CODE ||
+    temperature == PT100_UPPER_BOUND_ERROR_CODE ||
+    temperature == HARDWARE_ERROR_CODE) {
+    return temperature;
+  } else {
+    // Convert value to temperature value
+    temperature = temperature / 10;
+    return temperature;
+  }
+}
+
+// helper function to parse tt application temperature for version = 4
+function decode_sensor_temperature_v4(bytes, cursor) {
+  var temperature = {};
+
+  var PT100_LOWER_BOUND_ERROR_CODE = 0x7FFD;
+  var PT100_UPPER_BOUND_ERROR_CODE = 0x7FFE;
+  var HARDWARE_ERROR_CODE = 0x7FFF;
+
+  var min = decode_temperature_16bit(bytes, cursor);
+  var max = decode_temperature_16bit(bytes, cursor);
+  var avg = decode_temperature_16bit(bytes, cursor);
+
+  if (
+    min == PT100_LOWER_BOUND_ERROR_CODE ||
+    max == PT100_LOWER_BOUND_ERROR_CODE ||
+    avg == PT100_LOWER_BOUND_ERROR_CODE
+  ) {
+    if (max == min && avg == min) { // In case of error min, max, and ave are all the same
+      temperature.status = "PT100 Lower Bound Error";
+    }
+    else {
+      throw "Invalid min, max, avg 1"
+    }
+  } else if (
+    min == PT100_UPPER_BOUND_ERROR_CODE ||
+    max == PT100_UPPER_BOUND_ERROR_CODE ||
+    avg == PT100_UPPER_BOUND_ERROR_CODE
+  ) {
+    if (max == min && avg == min) {
+      temperature.status = "PT100 Upper Bound Error";
+    }
+    else {
+      throw "Invalid min, max, avg 2"
+    }
+  } else if (
+    min == HARDWARE_ERROR_CODE ||
+    max == HARDWARE_ERROR_CODE ||
+    avg == HARDWARE_ERROR_CODE
+  ) {
+    if (max == min && avg == min) {
+      temperature.status = "Hardware Error";
+    }
+    else {
+      console.log(min, max, avg);
+      throw "Invalid min, max, avg 3 ";
+    }
+  } else {
+    temperature.min = min;
+    temperature.max = max;
+    temperature.avg = avg;
+
+    temperature.status = "OK";
+  }
+
+  return temperature;
+}
+
+// helper function to parse tt application temperature for version = 4
+function decode_sensor_temperature_normal_v4(bytes, cursor) {
+  var temperature = {};
+
+  var PT100_LOWER_BOUND_ERROR_CODE = 0x7FFD;
+  var PT100_UPPER_BOUND_ERROR_CODE = 0x7FFE;
+  var HARDWARE_ERROR_CODE = 0x7FFF;
+
+  var value = decode_temperature_16bit(bytes, cursor);
+
+  if ( value == PT100_LOWER_BOUND_ERROR_CODE ) {
+    temperature.status = "PT100 Lower Bound Error";
+  } else if ( value == PT100_UPPER_BOUND_ERROR_CODE ) {
+    temperature.status = "PT100 Upper Bound Error";
+  } else if ( value == HARDWARE_ERROR_CODE ) {
+    temperature.status = "Hardware Error";
+  } else {
+    temperature.value = value;
+    temperature.status = "OK";
+  }
+
+  return temperature;
+}
+
 // helper function to parse tt application temperature
-function decode_application_temperature(bytes, cursor, version) {
+function decode_sensor_temperature_v2_v3(bytes, cursor, version) {
   var temperature = {};
   var PT100LowerErrorCode = -3000;
   var PT100UpperErrorCode = -3001;
@@ -298,6 +540,30 @@ function decode_application_temperature(bytes, cursor, version) {
   return temperature;
 }
 
+
+// helper function to parse tt application temperature
+function decode_sensor_temperature(bytes, cursor, version) {
+  var temperature = {};
+
+  switch (version) {
+    case 2:
+    case 3: {
+      temperature = decode_sensor_temperature_v2_v3(bytes, cursor, version);
+      break;
+    }
+
+    case 4: {
+      temperature = decode_sensor_temperature_v4(bytes, cursor);
+      break;
+    }
+
+    default:
+      throw "Unsupported protocol version";
+  }
+
+  return temperature;
+}
+
 // helper function to parse reboot_info
 function decode_reboot_info(reboot_type, bytes, cursor) {
   var result;
@@ -335,12 +601,12 @@ function decode_reboot_info(reboot_type, bytes, cursor) {
       payloadCursor.value = 4; // skip caller address
       actualValue = decode_int32(reboot_payload, payloadCursor);
       result = 'assert (' +
-          'caller: 0x' +
-          uint8_to_hex(reboot_payload[3]) +
-          uint8_to_hex(reboot_payload[2]) +
-          uint8_to_hex(reboot_payload[1]) +
-          uint8_to_hex(reboot_payload[0]) +
-          '; value: ' + actualValue.toString() + ')';
+        'caller: 0x' +
+        uint8_to_hex(reboot_payload[3]) +
+        uint8_to_hex(reboot_payload[2]) +
+        uint8_to_hex(reboot_payload[1]) +
+        uint8_to_hex(reboot_payload[0]) +
+        '; value: ' + actualValue.toString() + ')';
       break;
 
     case 4: // REBOOT_INFO_TYPE_APPLICATION_REASON
@@ -394,12 +660,17 @@ function uint32_to_hex(d) {
 
 function message_types_lookup_v2(type_id) {
   type_names = ["boot",
-                "activated",
-                "deactivated",
-                "application_event",
-                "device_status",
-                "device_configuration",
-                "application_configuration"];
+    "activated",
+    "deactivated",
+    "sensor_event",
+    "device_status",
+    "base_configuration",
+    "sensor_configuration",
+    "sensor_data_configuration",
+    "sensor_data",
+    "calibration_info",
+    "user_calibration",
+    "factory_calibration"];
   if (type_id < type_names.length) {
     return type_names[type_id];
   } else {
@@ -407,12 +678,16 @@ function message_types_lookup_v2(type_id) {
   }
 }
 
-function device_types_lookup_v2(type_id) {
+function device_types_lookup(type_id) {
   type_names = ["", // reserved
-                "ts",
-                "vs-qt",
-                "vs-mt",
-                "tt"];
+    "ts",
+    "vs-qt",
+    "vs-mt",
+    "tt",
+    "ld",
+    "vb",
+    "cs",
+    "pt"];
   if (type_id < type_names.length) {
     return type_names[type_id];
   } else {
@@ -420,9 +695,8 @@ function device_types_lookup_v2(type_id) {
   }
 }
 
-function trigger_lookup_v2(trigger_id) {
-  switch (trigger_id)
-  {
+function trigger_lookup(trigger_id) {
+  switch (trigger_id) {
     case 0:
       return "timer";
     case 1:
@@ -433,21 +707,49 @@ function trigger_lookup_v2(trigger_id) {
       return "condition_2";
     case 4:
       return "condition_3";
+    case 5:
+      return "user trigger";
     default:
       return "unknown";
-    }
+  }
 }
 
 Object.prototype.in =
-    function() {
-    for(var i=0; i<arguments.length; i++)
-        if (arguments[i] == this) return true;
+  function() {
+    for (var i = 0; i < arguments.length; i++)
+      if (arguments[i] == this) return true;
     return false;
-}
+  }
 
 /***************************
  * Message decoder functions
  */
+
+ function decode_boot_msg_v4(bytes, cursor) {
+  var expected_length_normal = 2;
+  var expected_length_debug = 18;
+  if (bytes.length != expected_length_normal && bytes.length != expected_length_debug) {
+    throw "Invalid boot message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug;
+  }
+
+  var boot = {};
+
+  // byte[1]
+  reboot_reason = decode_uint8(bytes, cursor);
+  boot.reboot_reason = {};
+  boot.reboot_reason.major = reboot_lookup_major(reboot_reason);
+  boot.reboot_reason.minor = reboot_lookup_minor(reboot_reason);
+
+  // debug data
+  if (bytes.length == expected_length_debug) {
+    boot.debug = '0x'
+    for (var i = cursor.value; i < bytes.length; i++) {
+      boot.debug = boot.debug + uint8_to_hex(bytes[i]);
+    }
+  }
+
+  return boot;
+}
 
 function decode_boot_msg(bytes, cursor) {
   var boot = {}
@@ -459,19 +761,19 @@ function decode_boot_msg(bytes, cursor) {
 
   // byte[1]
   device_type = decode_uint8(bytes, cursor);
-  boot.device_type = device_types_lookup_v2(device_type);
+  boot.device_type = device_types_lookup(device_type);
 
   // byte[2..5]
   var version_hash = decode_uint32(bytes, cursor);
   boot.version_hash = '0x' + uint32_to_hex(version_hash);
 
   // byte[6..7]
-  var device_config_crc = decode_uint16(bytes, cursor);
-  boot.device_config_crc = '0x' + uint16_to_hex(device_config_crc);
+  var base_config_crc = decode_uint16(bytes, cursor);
+  boot.base_config_crc = '0x' + uint16_to_hex(base_config_crc);
 
   // byte[8..9]
-  var application_config_crc = decode_uint16(bytes, cursor);
-  boot.application_config_crc = '0x' + uint16_to_hex(application_config_crc);
+  var sensor_config_crc = decode_uint16(bytes, cursor);
+  boot.sensor_config_crc = '0x' + uint16_to_hex(sensor_config_crc);
 
   // byte[10]
   var reset_flags = decode_uint8(bytes, cursor);
@@ -496,48 +798,152 @@ function decode_boot_msg(bytes, cursor) {
   return boot;
 }
 
-function decode_application_event_msg(bytes, cursor, version) {
-  var application_event = {}
+function decode_sensor_event_msg_normal(bytes, cursor) {
+  var sensor_event = {};
+
+  // byte[1]
+  selection = decode_uint8(bytes, cursor);
+
+  sensor_event.selection = lookup_selection(selection);
+  if (sensor_event.selection == "extended") {
+    throw "Mismatch between extended bit flag and message length!";
+  }
+
+  // byte[2]
+  var conditions = decode_uint8(bytes, cursor);
+  sensor_event.condition_0 = (conditions & 1);
+  sensor_event.condition_1 = ((conditions >> 1) & 1);
+  sensor_event.condition_2 = ((conditions >> 2) & 1);
+  sensor_event.condition_3 = ((conditions >> 3) & 1);
+
+  sensor_event.trigger = lookup_trigger((conditions >> 6) & 3);
+
+  sensor_event.temperature = {};
+  sensor_event.temperature =  decode_sensor_temperature_normal_v4(bytes, cursor);
+
+  return sensor_event;
+}
+
+function decode_sensor_event_msg_extended(bytes, cursor) {
+  var sensor_event = {};
+
+  // byte[1]
+  selection = decode_uint8(bytes, cursor);
+
+  sensor_event.selection = lookup_selection(selection);
+  if (sensor_event.selection == "extended") {
+    throw "Mismatch between extended bit flag and message length!";
+  }
+
+  // byte[2]
+  var conditions = decode_uint8(bytes, cursor);
+  sensor_event.condition_0 = (conditions & 1);
+  sensor_event.condition_1 = ((conditions >> 1) & 1);
+  sensor_event.condition_2 = ((conditions >> 2) & 1);
+  sensor_event.condition_3 = ((conditions >> 3) & 1);
+
+  sensor_event.trigger = lookup_trigger((conditions >> 6) & 3);
+
+  sensor_event.temperature = {};
+  sensor_event.temperature =  decode_sensor_temperature_v4(bytes, cursor, version);
+
+  return sensor_event;
+}
+
+function decode_sensor_event_msg(bytes, cursor, version) {
+  var sensor_event = {}
 
   var expected_length = 9;
   if (bytes.length != expected_length) {
-      throw "Invalid application_event message length " + bytes.length + " instead of " + expected_length
+    throw "Invalid sensor_event message length " + bytes.length + " instead of " + expected_length
   }
 
   // byte[1]
   trigger = decode_uint8(bytes, cursor);
-  application_event.trigger = trigger_lookup_v2(trigger);
+  sensor_event.trigger = trigger_lookup(trigger);
 
   // byte[2..7]
-  application_event.temperature = {};
+  sensor_event.temperature = {};
 
-  application_event.temperature = decode_application_temperature(bytes, cursor, version);
+  sensor_event.temperature = decode_sensor_temperature(bytes, cursor, version);
 
   // byte[8]
   conditions = decode_uint8(bytes, cursor);
-  application_event.condition_0 = (conditions & 1);
-  application_event.condition_1 = ((conditions >> 1) & 1);
-  application_event.condition_2 = ((conditions >> 2) & 1);
-  application_event.condition_3 = ((conditions >> 3) & 1);
+  sensor_event.condition_0 = (conditions & 1);
+  sensor_event.condition_1 = ((conditions >> 1) & 1);
+  sensor_event.condition_2 = ((conditions >> 2) & 1);
+  sensor_event.condition_3 = ((conditions >> 3) & 1);
 
-  return application_event;
+  return sensor_event;
 }
 
-function decode_device_status_msg(bytes, cursor) {
+function decode_device_status_msg_v4(bytes, cursor) {
+  var expected_length = 9;
+  if (bytes.length != expected_length) {
+    throw "Invalid device status message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug;
+  }
+
   var device_status = {};
 
-  var expected_length = 18;
+  // byte[1]
+  device_status.battery_voltage = decode_battery_voltage(bytes, cursor);
+
+  // byte[2]
+  device_status.temperature = decode_int8(bytes, cursor);
+
+  // byte[3,4]
+  device_status.lora_tx_counter = decode_uint16(bytes, cursor);
+
+  // byte[5]
+  rssi = decode_uint8(bytes, cursor);
+  device_status.avg_rssi = rssi_lookup(rssi);
+
+  // byte[6]
+  var bist = decode_uint8(bytes, cursor);
+  device_status.bist = '0x' + uint8_to_hex(bist);
+
+  // byte[7]
+  device_status.event_counter = decode_uint8(bytes, cursor);
+
+  // byte[8]
+  var sensor_type = decode_uint8(bytes, cursor);
+  device_status.sensor_type = decode_sensor_type(sensor_type);
+
+  return device_status;
+}
+
+function decode_device_status_msg(bytes, cursor, version) {
+  var device_status = {};
+
+
+  var expected_length;
+  switch (version) {
+    case 2:
+    case 3: {
+      expected_length = 18;
+      break;
+    }
+
+    case 4: {
+      expected_length = 19;
+      break;
+    }
+
+    default:
+      throw "Invalid protocol version";
+  }
+
   if (bytes.length != expected_length) {
-      throw "Invalid device_status message length " + bytes.length + " instead of " + expected_length
+    throw "Invalid device_status message length " + bytes.length + " instead of " + expected_length
   }
 
   // byte[1..2]
-  var device_config_crc = decode_uint16(bytes, cursor);
-  device_status.device_config_crc = '0x' + uint16_to_hex(device_config_crc);
+  var base_config_crc = decode_uint16(bytes, cursor);
+  device_status.base_config_crc = '0x' + uint16_to_hex(base_config_crc);
 
   // byte[3..4]
-  var application_config_crc = decode_uint16(bytes, cursor);
-  device_status.application_config_crc = '0x' + uint16_to_hex(application_config_crc);
+  var sensor_config_crc = decode_uint16(bytes, cursor);
+  device_status.sensor_config_crc = '0x' + uint16_to_hex(sensor_config_crc);
 
   // byte[5]
   device_status.event_counter = decode_uint8(bytes, cursor);
@@ -563,8 +969,311 @@ function decode_device_status_msg(bytes, cursor) {
   // byte[17]
   device_status.avg_snr = decode_int8(bytes, cursor);
 
+  if (version == 4) {
+    // byte[18]
+    device_status.bist = decode_uint8(bytes, cursor);
+  }
+
+
   return device_status;
 }
+
+/**
+  * Decode header
+  */
+ function decode_header(bytes, cursor) {
+  var header = {};
+  var data = decode_uint8(bytes, cursor);
+
+  header.protocol_version = data >> 4;
+  header.message_type = message_types_lookup_v2(data & 0x0F);
+
+  return header;
+}
+
+/**
+  * Decode header V4
+  */
+ function decode_header_v4(bytes, cursor) {
+  var header = {};
+  var data = decode_uint8(bytes, cursor);
+
+  header.protocol_version = data >> 4;
+
+  return header;
+}
+
+function reboot_lookup_major(reboot_reason) {
+  major_reboot_reason = reboot_reason & 0x0F;
+  switch (major_reboot_reason) {
+    case 0:
+      return "none";
+    case 1:
+      return "config update";
+    case 2:
+      return "firmware update";
+    case 3:
+      return "button reset"
+    case 4:
+      return "power";
+    case 5:
+      return "communication failure";
+    default:
+      return "system failure";
+  }
+}
+
+function reboot_lookup_minor(reboot_reason) {
+  major_reboot_reason = reboot_reason & 0x0F;
+  minor_reboot_reason = (reboot_reason >> 4) & 0x0F;
+
+  switch (major_reboot_reason) {
+    case 0:
+      return ""; // No minor reboot reason
+    case 1:
+      switch (minor_reboot_reason) {
+        case 0:
+          return "success";
+        case 1:
+          return "rejected";
+        default:
+          return "unknown";
+      }
+    case 2:
+      switch (minor_reboot_reason) {
+        case 0:
+          return "success";
+        case 1:
+          return "rejected";
+        case 2:
+          return "error";
+        case 3:
+          return "in progress";
+        default:
+          return "unknown";
+      }
+    case 3:
+      return ""; // No minor reboot reason
+    case 4:
+      switch (minor_reboot_reason) {
+        case 0:
+          return "black out";
+        case 1:
+          return "brown out";
+        case 2:
+          return "power safe state";
+        default:
+          return "unknown";
+      }
+    case 5:
+      return ""; // No minor reboot reason
+    case 6:
+      return ""; // No minor reboot reason
+    default:
+      return "unknown";
+  }
+}
+
+/**
+  * Decode battery voltage based on protocol version 4
+  *
+  * Raw value is between 0 - 255
+  * 0 represent 2 V, while 255 represent 4 V
+  */
+ function decode_battery_voltage(bytes, cursor) {
+  var raw = decode_uint8(bytes, cursor);
+
+  var offset = 2; // Lowest voltage is 2 V
+  var scale = 2 / 255;
+
+  var voltage = raw * scale + offset;
+
+  return voltage;
+}
+
+function rssi_lookup(rssi) {
+  switch (rssi) {
+    case 0:
+      return "0..-79";
+    case 1:
+      return "-80..-99";
+    case 2:
+      return "-100..-129";
+    case 3:
+      return "<-129";
+    default:
+      return "unknown";
+  }
+}
+
+// helper function to decode sensor type
+function decode_sensor_type(type) {
+  switch (type) {
+    case 0:
+      return "PT100";
+    case 1:
+      return 'J';
+    case 2:
+      return 'K';
+    case 3:
+      return 'T';
+    case 4:
+      return 'N';
+    case 5:
+      return 'E';
+    case 6:
+      return 'B';
+    case 7:
+      return 'R';
+    case 8:
+      return 'S';
+    default:
+      throw "Invalid thermocouple type!";
+  }
+}
+
+function decode_config_update_ans_msg(bytes, cursor) {
+  var expected_length = 6;
+  if (bytes.length != expected_length) {
+    throw "Invalid config update ans message length " + bytes.length + " instead of " + expected_length;
+  }
+
+  var ans = {};
+
+  // byte[0]
+  ans = decode_config_header(bytes, cursor);
+
+  // byte[1..4]
+  tag = decode_uint32(bytes, cursor);
+  ans.tag = '0x' + uint32_to_hex(tag);
+
+  // byte[5]
+  counter = decode_uint8(bytes, cursor);
+  ans.counter = counter & 0x0F;
+
+  return ans;
+}
+
+/**
+  * Decode config header
+  */
+ function decode_config_header(bytes, cursor) {
+  var header = {};
+  var data = decode_uint8(bytes, cursor);
+
+  header.protocol_version = data >> 4;
+  if (header.protocol_version != PROTOCOL_VERSION_V4) {
+    throw new Error("Invalid protocol version: " + header.protocol_version + "instead of" + PROTOCOL_VERSION_V4);
+  }
+  header.config_type = config_type_lookup(data & 0x0F);
+
+  return header;
+}
+
+function config_type_lookup(type_id) {
+  type_names = [
+    "base",
+    "region",
+    "reserved",
+    "sensor",
+    "unknown", // Not applicable to TT
+    "sensor_conditions"];
+  if (type_id < type_names.length) {
+    return type_names[type_id];
+  } else {
+    return "unknown";
+  }
+}
+
+function decode_deactivated_msg_v4(bytes, cursor) {
+  var deactivated = {};
+
+  var expected_length = 3;
+  if (bytes.length != expected_length) {
+    throw "Invalid deactivated message length " + bytes.length + " instead of " + expected_length
+  }
+
+  // byte[1]
+  var reason = decode_uint8(bytes, cursor);
+  deactivated.reason = deactivation_reason_lookup(reason);
+
+  // byte[2]
+  var reason_length = decode_uint8(bytes, cursor);
+
+  if (reason_length != 0) {
+    throw "Unsupported deactivated reason length"
+  }
+
+  return deactivated;
+}
+
+function deactivation_reason_lookup(deactivation_id) {
+  switch (deactivation_id) {
+    case 0:
+      return "user_triggered"; // REVIEW: For TT we currently only have this one, right?
+    default:
+      return "unknown";
+  }
+}
+
+function decode_activated_msg_v4(bytes, cursor) {
+  var activated = {};
+
+  var expected_length = 2;
+  if (bytes.length != expected_length) {
+    throw "Invalid activated message length " + bytes.length + " instead of " + expected_length
+  }
+
+  // byte[1]
+  device_type = decode_uint8(bytes, cursor);
+  activated.device_type = device_types_lookup(device_type);
+
+  return activated;
+}
+
+function decode_sensor_event_msg_v4(bytes, curser) {
+  var expected_length_normal = 5;
+  var expected_length_extended = 9;
+  if (bytes.length == expected_length_normal) {
+    return decode_sensor_event_msg_normal(bytes, curser);
+  }
+  else if (bytes.length == expected_length_extended) {
+    return decode_sensor_event_msg_extended(bytes, curser);
+  }
+  else {
+    throw "Invalid sensor_event message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_extended;
+  }
+}
+
+function lookup_selection(selection) {
+  switch (selection) {
+    case 0:
+      return "extended";
+    case 1:
+      return "min_only";
+    case 2:
+      return "max_only";
+    case 3:
+      return "avg_only";
+    default:
+      return "unknown";
+  }
+}
+
+function lookup_trigger(trigger) {
+  switch (trigger) {
+    case (0):
+      return "condition change";
+    case (1):
+      return "periodic";
+    case (2):
+      return "button press";
+    default:
+      return "unknown";
+  }
+}
+
+
 
 
 /**

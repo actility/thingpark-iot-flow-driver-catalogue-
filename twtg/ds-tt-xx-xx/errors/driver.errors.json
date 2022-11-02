@@ -5,7 +5,7 @@
         "bytes": "745678",
         "fPort": 15,
         "time": "2020-08-02T20:00:00.000+05:00",
-        "error": "Protocol version is not supported"
+        "error": "Unsupported protocol version!"
     },
     {
         "description": "Uplink: Invalid device_status message length",
