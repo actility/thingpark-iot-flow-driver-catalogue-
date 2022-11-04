@@ -16,7 +16,7 @@
     "application": {
       "producerId": "TWTG",
       "moduleId": "NEON TT",
-      "version": "1"
+      "version": "4"
     }
   },
   "devDependencies": {
