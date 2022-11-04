@@ -119,7 +119,7 @@
 /**
  * Decoder for ThingPark network server
  */
- function decodeUplink(input) {
+function decodeUplink(input) {
   return Decode(input.fPort, input.bytes)
 }
 
