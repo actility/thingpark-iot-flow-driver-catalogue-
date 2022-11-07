@@ -4,6 +4,7 @@
   "description": "NEON Temperature Transmitter driver for Actility ThingPark-X",
   "specification": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/blob/main/TT/Installation%20%26%20Use/6008_AA_Product-Manual-NEON-Temperature-Transmitter_E.pdf",
   "deviceImageUrl": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/raw/main/.resources/tt.jpg",
+  "manufacturerLogoUrl": "https://github.com/TWTG-R-D-B-V.png",
   "main": "index.js",
   "scripts": {
     "test": "jest --collectCoverage"
