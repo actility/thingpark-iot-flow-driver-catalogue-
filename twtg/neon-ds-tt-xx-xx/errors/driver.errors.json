@@ -1,6 +1,6 @@
 [
     {
-        "description": "Downlink: Incorrect protocol version",
+        "description": "Uplink: Incorrect protocol version",
         "type": "uplink",
         "bytes": "745678",
         "fPort": 15,
@@ -103,7 +103,6 @@
     {
         "description": "V4 BaseLD Complete Message - false message",
         "type": "downlink",
-        "fPort": 15,
         "data": {
             "config_update_req": {
                 "config_type": 0,
@@ -126,7 +125,6 @@
     {
         "description": "V4 Region config message – Compl. Not disable all bands",
         "type": "downlink",
-        "fPort": 15,
         "data": {
             "config_update_req": {
                 "config_type": "region",
@@ -158,7 +156,6 @@
     {
         "description": "V4 Region config message – Compl. Not disable all bands",
         "type": "downlink",
-        "fPort": 15,
         "data": {
             "config_update_req": {
                 "config_type": "region",
@@ -190,7 +187,6 @@
     {
         "description": "V4 Region config message – Compl. Burst range 1..32",
         "type": "downlink",
-        "fPort": 15,
         "data": {
             "config_update_req": {
                 "config_type": "region",
