@@ -1,6 +1,6 @@
 /**
- * Filename          : -
- * Latest commit     : -
+ * Filename          : decoder_tt_doc-D_rev-3.js
+ * Latest commit     : 910968dc
  * Protocol document : D
  *
  * Release History
@@ -21,14 +21,14 @@
  * - Verify message length before parsing
  * - Fixed hexadecimal message decoding
  *
- * YYYY-MM-DD revision X
+ * 2022-11-10 revision 3
  * - Align configuration name in NEON product
  *   + device -> base
  *   + application -> sensor
  * - Align uplink name in NEON product
  *   + application_event -> sensor_event
  * - Updated TT similar to the changes from PT
- * -- updated the decoder to supoort the new error codes for PT
+ * -- updated the decoder to support the new error codes for PT
  * -- added the user trigger for event msg
  * -- completed the list of message types
  * -- completed the list of devices
@@ -43,9 +43,12 @@
  * -- Moved protocol_version into message body
  * -- Ignore null payload OR MAC uplink
  * -- Added entry point for ThingPark
+ * - Used throw new Error instead of throw
+ * 
+ * YYYY-MM-DD revision X
  */
 
- if (typeof module !== 'undefined') {
+if (typeof module !== 'undefined') {
   // Only needed for nodejs
   module.exports = {
     decodeUplink: decodeUplink,
@@ -192,7 +195,7 @@ function Decode(fPort, bytes) { // Used for ChirpStack (aka LoRa Network Server)
             break;
 
           default:
-            throw "Invalid message type!";
+            throw new Error("Invalid message type!");
         }
       }
       break;
@@ -245,11 +248,11 @@ function Decode(fPort, bytes) { // Used for ChirpStack (aka LoRa Network Server)
       }
       break;
     }
-  
+
     default:
-      throw "Unsupported protocol version!";
+      throw new Error("Unsupported protocol version!");
   }
-  
+
   return decoded;
 }
 
@@ -274,7 +277,7 @@ function DecodeHexString(fPort, hex_string) {
 /**
   * Get protocol version without increasing cursor
   */
- function get_protocol_version(bytes) {
+function get_protocol_version(bytes) {
   var cursor = {};
   cursor.value = 0;
 
@@ -432,7 +435,7 @@ function decode_sensor_temperature_v4(bytes, cursor) {
       temperature.status = "PT100 Lower Bound Error";
     }
     else {
-      throw "Invalid min, max, avg 1"
+      throw new Error("Invalid min, max, avg 1");
     }
   } else if (
     min == PT100_UPPER_BOUND_ERROR_CODE ||
@@ -443,7 +446,7 @@ function decode_sensor_temperature_v4(bytes, cursor) {
       temperature.status = "PT100 Upper Bound Error";
     }
     else {
-      throw "Invalid min, max, avg 2"
+      throw new Error("Invalid min, max, avg 2");
     }
   } else if (
     min == HARDWARE_ERROR_CODE ||
@@ -455,7 +458,7 @@ function decode_sensor_temperature_v4(bytes, cursor) {
     }
     else {
       console.log(min, max, avg);
-      throw "Invalid min, max, avg 3 ";
+      throw new Error("Invalid min, max, avg 3 ");
     }
   } else {
     temperature.min = min;
@@ -469,7 +472,7 @@ function decode_sensor_temperature_v4(bytes, cursor) {
 }
 
 // helper function to parse tt application temperature for version = 4
-function decode_sensor_temperature_normal_v4(bytes, cursor) {
+function decode_sensor_temperature_normal_v4(bytes, cursor, selection) {
   var temperature = {};
 
   var PT100_LOWER_BOUND_ERROR_CODE = 0x7FFD;
@@ -478,14 +481,22 @@ function decode_sensor_temperature_normal_v4(bytes, cursor) {
 
   var value = decode_temperature_16bit(bytes, cursor);
 
-  if ( value == PT100_LOWER_BOUND_ERROR_CODE ) {
+  if (value == PT100_LOWER_BOUND_ERROR_CODE) {
     temperature.status = "PT100 Lower Bound Error";
-  } else if ( value == PT100_UPPER_BOUND_ERROR_CODE ) {
+  } else if (value == PT100_UPPER_BOUND_ERROR_CODE) {
     temperature.status = "PT100 Upper Bound Error";
-  } else if ( value == HARDWARE_ERROR_CODE ) {
+  } else if (value == HARDWARE_ERROR_CODE) {
     temperature.status = "Hardware Error";
   } else {
-    temperature.value = value;
+    if (selection == "min_only") {
+      temperature.min = value;
+    } else if (selection == "max_only") {
+      temperature.max = value;
+    } else if (selection == "avg_only") {
+      temperature.avg = value;
+    } else {
+      throw new Error("Only min, max, or, avg is accepted!");
+    }
     temperature.status = "OK";
   }
 
@@ -543,7 +554,7 @@ function decode_sensor_temperature_v2_v3(bytes, cursor, version) {
       temperature.status = "OK";
     }
   } else {
-    throw "Invalid protocol version";
+    throw new Error("Invalid protocol version");
   }
 
   return temperature;
@@ -567,7 +578,7 @@ function decode_sensor_temperature(bytes, cursor, version) {
     }
 
     default:
-      throw "Unsupported protocol version";
+      throw new Error("Unsupported protocol version");
   }
 
   return temperature;
@@ -724,7 +735,7 @@ function trigger_lookup(trigger_id) {
 }
 
 Object.prototype.in =
-  function() {
+  function () {
     for (var i = 0; i < arguments.length; i++)
       if (arguments[i] == this) return true;
     return false;
@@ -734,11 +745,11 @@ Object.prototype.in =
  * Message decoder functions
  */
 
- function decode_boot_msg_v4(bytes, cursor) {
+function decode_boot_msg_v4(bytes, cursor) {
   var expected_length_normal = 2;
   var expected_length_debug = 18;
   if (bytes.length != expected_length_normal && bytes.length != expected_length_debug) {
-    throw "Invalid boot message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug;
+    throw new Error("Invalid boot message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug);
   }
 
   var boot = {};
@@ -765,7 +776,7 @@ function decode_boot_msg(bytes, cursor) {
 
   var expected_length = 23;
   if (bytes.length != expected_length) {
-    throw "Invalid boot message length " + bytes.length + " instead of " + expected_length
+    throw new Error("Invalid boot message length " + bytes.length + " instead of " + expected_length);
   }
 
   // byte[1]
@@ -815,7 +826,7 @@ function decode_sensor_event_msg_normal(bytes, cursor) {
 
   sensor_event.selection = lookup_selection(selection);
   if (sensor_event.selection == "extended") {
-    throw "Mismatch between extended bit flag and message length!";
+    throw new Error("Mismatch between extended bit flag and message length!");
   }
 
   // byte[2]
@@ -828,7 +839,7 @@ function decode_sensor_event_msg_normal(bytes, cursor) {
   sensor_event.trigger = lookup_trigger((conditions >> 6) & 3);
 
   sensor_event.temperature = {};
-  sensor_event.temperature =  decode_sensor_temperature_normal_v4(bytes, cursor);
+  sensor_event.temperature = decode_sensor_temperature_normal_v4(bytes, cursor, sensor_event.selection);
 
   return sensor_event;
 }
@@ -841,7 +852,7 @@ function decode_sensor_event_msg_extended(bytes, cursor) {
 
   sensor_event.selection = lookup_selection(selection);
   if (sensor_event.selection == "extended") {
-    throw "Mismatch between extended bit flag and message length!";
+    throw new Error("Mismatch between extended bit flag and message length!");
   }
 
   // byte[2]
@@ -854,7 +865,7 @@ function decode_sensor_event_msg_extended(bytes, cursor) {
   sensor_event.trigger = lookup_trigger((conditions >> 6) & 3);
 
   sensor_event.temperature = {};
-  sensor_event.temperature =  decode_sensor_temperature_v4(bytes, cursor, version);
+  sensor_event.temperature = decode_sensor_temperature_v4(bytes, cursor, version);
 
   return sensor_event;
 }
@@ -864,7 +875,7 @@ function decode_sensor_event_msg(bytes, cursor, version) {
 
   var expected_length = 9;
   if (bytes.length != expected_length) {
-    throw "Invalid sensor_event message length " + bytes.length + " instead of " + expected_length
+    throw new Error("Invalid sensor_event message length " + bytes.length + " instead of " + expected_length);
   }
 
   // byte[1]
@@ -889,7 +900,7 @@ function decode_sensor_event_msg(bytes, cursor, version) {
 function decode_device_status_msg_v4(bytes, cursor) {
   var expected_length = 9;
   if (bytes.length != expected_length) {
-    throw "Invalid device status message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug;
+    throw new Error("Invalid device status message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_debug);
   }
 
   var device_status = {};
@@ -939,11 +950,11 @@ function decode_device_status_msg(bytes, cursor, version) {
     }
 
     default:
-      throw "Invalid protocol version";
+      throw new Error("Invalid protocol version");
   }
 
   if (bytes.length != expected_length) {
-    throw "Invalid device_status message length " + bytes.length + " instead of " + expected_length
+    throw new Error("Invalid device_status message length " + bytes.length + " instead of " + expected_length);
   }
 
   // byte[1..2]
@@ -990,7 +1001,7 @@ function decode_device_status_msg(bytes, cursor, version) {
 /**
   * Decode header
   */
- function decode_header(bytes, cursor) {
+function decode_header(bytes, cursor) {
   var header = {};
   var data = decode_uint8(bytes, cursor);
 
@@ -1003,7 +1014,7 @@ function decode_device_status_msg(bytes, cursor, version) {
 /**
   * Decode header V4
   */
- function decode_header_v4(bytes, cursor) {
+function decode_header_v4(bytes, cursor) {
   var header = {};
   var data = decode_uint8(bytes, cursor);
 
@@ -1089,7 +1100,7 @@ function reboot_lookup_minor(reboot_reason) {
   * Raw value is between 0 - 255
   * 0 represent 2 V, while 255 represent 4 V
   */
- function decode_battery_voltage(bytes, cursor) {
+function decode_battery_voltage(bytes, cursor) {
   var raw = decode_uint8(bytes, cursor);
 
   var offset = 2; // Lowest voltage is 2 V
@@ -1137,14 +1148,14 @@ function decode_sensor_type(type) {
     case 8:
       return 'S';
     default:
-      throw "Invalid thermocouple type!";
+      throw new Error("Invalid thermocouple type!");
   }
 }
 
 function decode_config_update_ans_msg(bytes, cursor) {
   var expected_length = 6;
   if (bytes.length != expected_length) {
-    throw "Invalid config update ans message length " + bytes.length + " instead of " + expected_length;
+    throw new Error("Invalid config update ans message length " + bytes.length + " instead of " + expected_length);
   }
 
   var ans = {};
@@ -1166,7 +1177,9 @@ function decode_config_update_ans_msg(bytes, cursor) {
 /**
   * Decode config header
   */
- function decode_config_header(bytes, cursor) {
+function decode_config_header(bytes, cursor) {
+  var PROTOCOL_VERSION_V4 = 4;
+
   var header = {};
   var data = decode_uint8(bytes, cursor);
 
@@ -1199,7 +1212,7 @@ function decode_deactivated_msg_v4(bytes, cursor) {
 
   var expected_length = 3;
   if (bytes.length != expected_length) {
-    throw "Invalid deactivated message length " + bytes.length + " instead of " + expected_length
+    throw new Error("Invalid deactivated message length " + bytes.length + " instead of " + expected_length);
   }
 
   // byte[1]
@@ -1210,7 +1223,7 @@ function decode_deactivated_msg_v4(bytes, cursor) {
   var reason_length = decode_uint8(bytes, cursor);
 
   if (reason_length != 0) {
-    throw "Unsupported deactivated reason length"
+    throw new Error("Unsupported deactivated reason length");
   }
 
   return deactivated;
@@ -1230,7 +1243,7 @@ function decode_activated_msg_v4(bytes, cursor) {
 
   var expected_length = 2;
   if (bytes.length != expected_length) {
-    throw "Invalid activated message length " + bytes.length + " instead of " + expected_length
+    throw new Error("Invalid activated message length " + bytes.length + " instead of " + expected_length);
   }
 
   // byte[1]
@@ -1250,7 +1263,7 @@ function decode_sensor_event_msg_v4(bytes, curser) {
     return decode_sensor_event_msg_extended(bytes, curser);
   }
   else {
-    throw "Invalid sensor_event message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_extended;
+    throw new Error("Invalid sensor_event message length " + bytes.length + " instead of " + expected_length_normal + " or " + expected_length_extended);
   }
 }
 
@@ -1282,10 +1295,9 @@ function lookup_trigger(trigger) {
   }
 }
 
-
 /**
- * Filename          : -
- * Latest commit     : -
+ * Filename          : encoder_tt_doc-D_rev-3.js
+ * Latest commit     : 910968dc
  * Protocol document : D
  *
  * Release History
@@ -1298,13 +1310,13 @@ function lookup_trigger(trigger) {
  * - Added limitation to base configuration
  * - Update minimum number of number_of_unconfirmed_messages
  *
- * YYYY-MM-DD revision 2
+ * 2021-07-15 revision 2
  * - Fixed threshold_temperature scale which affect version 2 and 3
  * - Add sensor type to application configuration, according to Protocol D
  * - Add value range assertion to encode_device_config
  * - Fixed the parsing of unconfirmed_repeat to number_of_unconfirmed_messages
  *
- * YYYY-MM-DD revision X
+ * 2022-11-10 revision 3
  * - Align configuration name in NEON product
  *   + device -> base
  *   + application -> sensor
@@ -1317,7 +1329,11 @@ function lookup_trigger(trigger) {
  * -- Separated base configuration into base configuration and Region configuration
  * -- Moved protocol_version into message body
  * -- Updated lorawan_fsb_mask representation to disable_switch to dedicate 1 bit to every band (8 channels)
- * -- Uses ThingPark as default entry point where fPort is not an input but an output. 
+ * -- Uses ThingPark as default entry point where fPort is not an input but an output.
+ * - Used throw new Error instead of throw
+ *
+ * YYYY-MM-DD revision X
+ * - 
  */
 
 var mask_byte = 255;
@@ -1325,7 +1341,7 @@ var mask_byte = 255;
 /**
   * Entry point for ThingPark
   */
- function encodeDownlink(input) {
+function encodeDownlink(input) {
   // Encode downlink messages sent as
   // object to an array or buffer of bytes.
 
@@ -1470,7 +1486,7 @@ var mask_byte = 255;
 /**
   * Entry point for Chirpstack v3
   */
- function Encode(fPort, obj) {
+function Encode(fPort, obj) {
   return encodeDownlink(obj).bytes;
 }
 
@@ -1553,26 +1569,26 @@ function encode_sensor_config(bytes, obj) {
     encode_device_type_v3(bytes, obj.device_type);
     encode_sensor_type(bytes, obj.sensor_type);
   } else {
-    throw "Protocol version is not supported!";
+    throw new Error("Protocol version is not supported!");
   }
 
-  for (var i = 0; i != 4; ++i){
+  for (var i = 0; i != 4; ++i) {
     // All mode should not be above 1850 C
-    if(obj.events[i].threshold_temperature > 2120){
-      throw "threshold is above supported value"
+    if (obj.events[i].threshold_temperature > 2120) {
+      throw new Error("threshold is above supported value");
     }
 
-    if(obj.events[i].mode == "increasing" || obj.events[i].mode == "decreasing"){
+    if (obj.events[i].mode == "increasing" || obj.events[i].mode == "decreasing") {
       // Mode 3 and 4 (increasing and decreasing) only support positive number, while ...
-      if(obj.events[i].threshold_temperature < -2120){
+      if (obj.events[i].threshold_temperature < -2120) {
         console.log("L319");
-        throw "threshold is below supported value1"
+        throw new Error("threshold is below supported value1");
       }
-    } else if(obj.events[i].threshold_temperature < -270){
+    } else if (obj.events[i].threshold_temperature < -270) {
       // Mode 0, 1, and 2 (off, above, below) support threshold down to -270
       console.log("L324");
       console.log(obj.events[i].mode);
-      throw "threshold is below supported value2"
+      throw new Error("threshold is below supported value2");
     }
   }
 
@@ -1608,26 +1624,22 @@ function encode_sensor_conditions_configuration_v4(bytes, payload) {
     // threshold_temperature
     if (payload.event_conditions[idx].mode == 'above' ||
       payload.event_conditions[idx].mode == 'below') {
-      if (payload.event_conditions[idx].threshold_temperature > 1850 || 
+      if (payload.event_conditions[idx].threshold_temperature > 1850 ||
         payload.event_conditions[idx].threshold_temperature < -270) {
         throw new Error("Threshold_temperature is outside of specification: " + payload.event_conditions[idx].threshold_temperature);
       }
     }
     else {
-      if (payload.event_conditions[idx].threshold_temperature > 2120 || 
+      if (payload.event_conditions[idx].threshold_temperature > 2120 ||
         payload.event_conditions[idx].threshold_temperature < 0) {
         throw new Error("Threshold_temperature is outside of specification: " + payload.event_conditions[idx].threshold_temperature);
-      } 
+      }
     }
 
     // measurement_window
-    if (payload.event_conditions[idx].measurement_window == 0) {
-      if (payload.event_conditions[idx].mode != 'off') {
-        throw new Error("Measurement_window can only be zero if mode = off")
-      }
-    } else if (payload.event_conditions[idx].measurement_window < 1 ||
+    if (payload.event_conditions[idx].measurement_window < 0 ||
       payload.event_conditions[idx].measurement_window > 63) {
-        throw new Error("Measurement_window is outside of specification: " + payload.event_conditions[idx].measurement_window);
+      throw new Error("Measurement_window is outside of specification: " + payload.event_conditions[idx].measurement_window);
     }
 
     encode_event_condition_v4(bytes, payload.event_conditions[idx]);
@@ -1705,13 +1717,15 @@ function encode_region_config_v4(bytes, payload) {
   disable_switch |= payload.disable_switch.dwell_time ? 0x1000 : 0x0000;
   encode_uint16(bytes, disable_switch);
 
-  encode_uint8(bytes, payload.rx1_delay &  0x0f);
+  encode_uint8(bytes, payload.rx1_delay & 0x0f);
 
   // ADR
   adr = payload.adr.mode;
   adr |= (payload.adr.ack_limit_exp & 0x07) << 2;
   adr |= (payload.adr.ack_delay_exp & 0x07) << 5;
   encode_uint8(bytes, adr);
+
+  encode_int8(bytes, payload.max_tx_power);
 }
 
 /* Helper Functions *********************************************************/
@@ -1725,7 +1739,7 @@ function encode_header(bytes, message_type_id, protocol_version) {
   bytes.push(b);
 }
 
-// helper function to encode the header for PROTOCOL_VERSION_3
+// helper function to encode the header for PROTOCOL_VERSION_4
 function encode_header_v4(bytes, header) {
   var b = 0;
   b += (lookup_config_type(header.config_type) & 0x0F);
@@ -1758,7 +1772,7 @@ function encode_device_type_v2(bytes, type, enable_rtd) {
       value = 8;
       break;
     default:
-      throw "Invalid device type!";
+      throw new Error("Invalid device type!");
   }
 
   if (enable_rtd) {
@@ -1786,7 +1800,7 @@ function encode_device_type_v3(bytes, type) {
       value = 4;
       break;
     default:
-      throw "Invalid device type!";
+      throw new Error("Invalid device type!");
   }
 
   encode_uint8(bytes, value);
@@ -1825,7 +1839,7 @@ function encode_sensor_type(bytes, type) {
       value = 8;
       break;
     default:
-      throw "Invalid thermocouple type!";
+      throw new Error("Invalid thermocouple type!");
   }
 
   encode_uint8(bytes, value);
@@ -2092,9 +2106,9 @@ function encodeModeMeasurementWindow(bytes, mode, measWindow) {
       throw new Error("mode is outside of specification: " + mode);
   }
 
-    mode_meas_window = temporary_mode[0] | (temporary_measurement_window[0] << 2); // bits[0,1]: mode, bits[2..7]: measurement_window
+  mode_meas_window = temporary_mode[0] | (temporary_measurement_window[0] << 2); // bits[0,1]: mode, bits[2..7]: measurement_window
 
-    encode_uint8(bytes, mode_meas_window);
+  encode_uint8(bytes, mode_meas_window);
 }
 
 // Helper function to encode config_type for PROTOCOL_VERSION_3

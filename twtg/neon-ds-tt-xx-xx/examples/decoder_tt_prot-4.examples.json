@@ -57,7 +57,7 @@
                 "condition_2": 0,
                 "condition_3": 1,
                 "temperature": {
-                    "value": -10,
+                    "max": -10,
                     "status": "OK"
                 }
             }

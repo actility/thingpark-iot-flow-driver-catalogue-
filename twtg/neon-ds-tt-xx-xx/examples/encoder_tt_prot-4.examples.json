@@ -107,7 +107,7 @@
     {
         "description": "V4 TT Region Config Payload only Complete Msg - Min config",
         "type": "downlink",
-        "bytes": "410000000001000000000000",
+        "bytes": "41000000000100000000000000",
         "fPort": 7,
         "time": "2020-08-02T20:00:00.000+05:00",
         "data": {
@@ -131,7 +131,8 @@
                         "ack_limit_exp": 0,
                         "ack_delay_exp": 0,
                         "mode": 0
-                    }
+                    },
+                    "max_tx_power": 0
                 }
             }
         }
@@ -139,7 +140,7 @@
     {
         "description": "V4 Region config message – Compl – Max",
         "type": "downlink",
-        "bytes": "41FFFFFFFF0DFFFFFE1F0FFE",
+        "bytes": "41FFFFFFFF0DFFFFFE1F0FFE0E",
         "fPort": 7,
         "time": "2020-08-02T20:00:00.000+05:00",
         "data": {
@@ -163,7 +164,8 @@
                         "ack_limit_exp": 7,
                         "ack_delay_exp": 7,
                         "mode": 2
-                    }
+                    },
+                    "max_tx_power": 14
                 }
             }
         }
@@ -171,7 +173,7 @@
     {
         "description": "V4 Region config message – Compl – EU868",
         "type": "downlink",
-        "bytes": "41FFFFFFFF01185C00000030",
+        "bytes": "41FFFFFFFF01185C000000300E",
         "fPort": 7,
         "time": "2020-08-02T20:00:00.000+05:00",
         "data": {
@@ -195,7 +197,8 @@
                         "ack_limit_exp": 4,
                         "ack_delay_exp": 1,
                         "mode": 0
-                    }
+                    },
+                    "max_tx_power": 14                    
                 }
             }
         }
@@ -203,7 +206,7 @@
     {
         "description": "V4 Region config message – Compl – US915",
         "type": "downlink",
-        "bytes": "41FFFFFFFF02188D00000030",
+        "bytes": "41FFFFFFFF02188D0000003008",
         "fPort": 7,
         "time": "2020-08-02T20:00:00.000+05:00",
         "data": {
@@ -227,7 +230,8 @@
                         "ack_limit_exp": 4,
                         "ack_delay_exp": 1,
                         "mode": 0
-                    }
+                    },
+                    "max_tx_power": 8                    
                 }
             }
         }
