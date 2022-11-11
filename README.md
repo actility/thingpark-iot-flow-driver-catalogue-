@@ -1,3 +1,15 @@
+# PLEASE NOTE THAT THIS REPOSITORY HAS BEEN MOVED TO:
+https://github.com/actility/device-catalog
+
+That new repository handles both device profiles and drivers. 
+
+PLEASE DO NOT SUBMIT ANY NEW PULL REQUEST IN THIS REPO!!!
+
+
+
+
+
+
 # Quick steps to develop and submit your device driver
 
 For more details, please study the content of the `development-guide` folder that explains all details on how a driver works and prenests templates.
