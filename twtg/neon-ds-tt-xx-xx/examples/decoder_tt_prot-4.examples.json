@@ -42,7 +42,7 @@
         }
     },
     {
-        "description": "V4 TT Sensor event message – Payload pattern",
+        "description": "V4 TT Sensor normal event message – Payload pattern",
         "type": "uplink",
         "bytes": "43024A9CFF",
         "fPort": 3,
@@ -58,6 +58,30 @@
                 "condition_3": 1,
                 "temperature": {
                     "max": -10,
+                    "status": "OK"
+                }
+            }
+        }
+    },
+    {
+        "description": "V4 TT Sensor extended event message – Payload pattern",
+        "type": "uplink",
+        "bytes": "43004A44489CFFC800",
+        "fPort": 3,
+        "time": "2020-08-02T20:00:00.000+05:00",
+        "data": {
+            "sensor_event": {
+                "protocol_version": 4,
+                "selection": "extended",
+                "trigger": "periodic",
+                "condition_0": 0,
+                "condition_1": 1,
+                "condition_2": 0,
+                "condition_3": 1,
+                "temperature": {
+                    "max": -10,
+                    "min": 1850,
+                    "avg": 20,
                     "status": "OK"
                 }
             }
