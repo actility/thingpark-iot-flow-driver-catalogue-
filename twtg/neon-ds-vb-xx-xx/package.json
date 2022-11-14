@@ -1,0 +1,26 @@
+{
+  "name": "@actilitypub/neon-ds-vb-xx-xx",
+  "version": "1.0.0",
+  "description": "NEON Vibration Sensor driver for Actility ThingPark-X",
+  "specification": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/tree/main/VB/",
+  "deviceImageUrl": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/raw/main/.resources/vb.jpg",
+  "manufacturerLogoUrl": "https://assets.twtg.io/assets/images/logo-red.png",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --collectCoverage"
+  },
+  "driver": {
+    "description": "A simple driver that is able to decode/encode data from the NEON Vibration Sensor",
+    "producerId": "TWTG",
+    "type": "thingpark-x-js",
+    "private": false,
+    "application": {
+      "producerId": "TWTG",
+      "moduleId": "NEON VB",
+      "version": "3"
+    }
+  },
+  "devDependencies": {
+    "jest": "^25.5.4"
+  }
+}

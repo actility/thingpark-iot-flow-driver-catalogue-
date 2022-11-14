@@ -1,0 +1,26 @@
+{
+  "name": "@actilitypub/neon-ds-tt-xx-xx",
+  "version": "1.0.0",
+  "description": "NEON Temperature Transmitter driver for Actility ThingPark-X",
+  "specification": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/tree/main/TT/",
+  "deviceImageUrl": "https://github.com/TWTG-R-D-B-V/neon-product-documentation/raw/main/.resources/tt.jpg",
+  "manufacturerLogoUrl": "https://assets.twtg.io/assets/images/logo-red.png",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --collectCoverage"
+  },
+  "driver": {
+    "description": "A simple driver that is able to decode/encode data from the NEON Temperature Transmitter",
+    "producerId": "TWTG",
+    "type": "thingpark-x-js",
+    "private": false,
+    "application": {
+      "producerId": "TWTG",
+      "moduleId": "NEON TT",
+      "version": "4"
+    }
+  },
+  "devDependencies": {
+    "jest": "^25.5.4"
+  }
+}
